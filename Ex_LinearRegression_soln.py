@@ -15,6 +15,9 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.neighbors import KNeighborsRegressor 
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+
 
 import joblib
 
@@ -86,11 +89,12 @@ def main():
     )
     
     # 2. Combine pre-processing with ML algorithm
-    model = make_pipeline(
-        preprocess,
-        LinearRegression()
-    )
+    pipeline = make_pipeline(preprocess,KNeighborsRegressor())  
+    params = {'kneighborsregressor__n_neighbors' : range(2,21),'kneighborsregressor__weights': ['uniform','distance']}
 
+    model = GridSearchCV(pipeline, params, cv=5, scoring='neg_mean_squared_error') 
+    
+    
     # TRAINING
     ##########
     # Train/Test Split
@@ -111,7 +115,7 @@ def main():
     print("####################")
     print("RMSE: {:.2f}".format(rmse))
     print("R2 Score: {:.5f}".format(r2))
-    
+    print("Best Parameters chosen : {}".format(model.best_params_))
         # Compare actual vs predicted values
     compare = pd.DataFrame(
         {

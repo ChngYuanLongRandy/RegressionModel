@@ -47,19 +47,17 @@ class GetAge(BaseEstimator, TransformerMixin):
     
     def transform(self,X):
         current_year = int(d.datetime.now().year)
+        X['YearBuilt'] = current_year - X.YearBuilt
 
-        """TASK: Replace the 'YearBuilt' column values with the calculated age (subtract the 
-        current year from the original values).
-        """
-        
         return X
+
 
 def main():
     
     # DATA INPUT
     ############
-    file_path = "./house_prices/train.csv" #TASK: Modify to path of file
-    input_data = file_path# TASK: Read in the input csv file using pandas
+    file_path = "https://raw.githubusercontent.com/ChngYuanLongRandy/RegressionModel/main/train.csv"
+    input_data = pd.read_csv(file_path, index_col=0)
     display_df_info("Raw Input", input_data)
 
     # Seperate out the outcome variable from the loaded dataframe
@@ -71,45 +69,35 @@ def main():
     #####################################
 
     # Subsetting the columns: define features to keep
-    feature_names = []# TASK: Define the names of the columns to keep
+    feature_names = ['LotArea', 'YearBuilt', '1stFlrSF', '2ndFlrSF', 'FullBath', 'BedroomAbvGr', 'TotRmsAbvGrd', 'HouseStyle']
     features = input_data[feature_names]
     display_df_info('Features before Transform', features, v=True)
 
     # Create the pipeline ...
     # 1. Pre-processing
     # Define variables made up of lists. Each list is a set of columns that will go through the same data transformations.
-    numerical_features = [] # TASK: Define numerical column names
-    categorical_features = [] # TASK: Define categorical column names
+    numerical_features = ['LotArea', 'YearBuilt', '1stFlrSF', '2ndFlrSF', 'FullBath', 'BedroomAbvGr', 'TotRmsAbvGrd']
+    categorical_features = ['HouseStyle']
     
-    """TASK:
-    Define the data processing steps (transformers) to be applied to the numerical features in the dataset.
-
-    At a minimum, use 2 transformers: GetAge() and one other. Combine them using make_pipeline() or Pipeline()
-    """
     preprocess = make_column_transformer(
-        ("""TASK: Define transformers""", numerical_features),
+        (make_pipeline(GetAge(), SimpleImputer(), StandardScaler()), numerical_features),
+        # (make_pipeline(MaxAbsScaler()), numerical_features),
         (OneHotEncoder(), categorical_features)
     )
     
     # 2. Combine pre-processing with ML algorithm
     model = make_pipeline(
         preprocess,
-        # TASK : replace with ML algorithm from scikit
+        LinearRegression()
     )
 
     # TRAINING
     ##########
     # Train/Test Split
-    """TASK:
-    Split the data in test and train sets by completing the train_test_split function below. Define a random_state value so that 
-    the experiment is repeatable.
-    """
-    x_train, x_test, y_train, y_test = train_test_split() # TASK: Complete the code
+    x_train, x_test, y_train, y_test = train_test_split(features, output_var, test_size=0.3, random_state=42)
 
     # Train the pipeline
     model.fit(x_train, y_train)
-
-    # Optional: Train with cross-validation and/or parameter grid search
 
     # SCORING/EVALUATION
     ####################
@@ -117,23 +105,20 @@ def main():
     pred_test = model.predict(x_test)
     
     # Display the results of the metrics
-    """TASK:
-    Calculate the RMSE and Coeff of Determination between the actual and predicted sale prices. 
-        
-    Name your variables rmse and r2 respectively.
-    """
+    rmse = np.sqrt(mean_squared_error(y_test, pred_test))
+    r2 = r2_score(y_test, pred_test)
     print("Results on Test Data")
     print("####################")
     print("RMSE: {:.2f}".format(rmse))
     print("R2 Score: {:.5f}".format(r2))
     
-    # Compare actual vs predicted values
-    """TASK:
-    Create a new dataframe which combines the actual and predicted Sale Prices from the test dataset. You
-    may also add columns with other information such as difference, abs diff, %tage difference etc.
-    
-    Name your variable compare
-    """
+        # Compare actual vs predicted values
+    compare = pd.DataFrame(
+        {
+            'Actual' : y_test,
+            'Predicted': pred_test,
+            'Difference': y_test - pred_test
+        })
     display_df_info('Actual vs Predicted Comparison', compare)
 
     # Save the model 
